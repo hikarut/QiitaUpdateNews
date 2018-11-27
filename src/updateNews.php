@@ -112,7 +112,7 @@ class HerokuQiita
      *
      * @param array $data
      * @param string $uuid
-     * @param string $tag
+     * @param string or array $tag
      * @param string $title
      * @return array $response
      */
@@ -124,12 +124,24 @@ class HerokuQiita
         $entryPoint = "items/${uuid}";
         $requestUrl = self::URL_V2 . $entryPoint;
         
+        // タグの複数対応
+        if (is_array($tag)) {
+            foreach ($tag as $key => $value) {
+                $tagStringArray[] = '{"name": "' . $value . '"}';
+            }
+            $tagString = implode(',', $tagStringArray);
+            $tags = implode(',', $tag);
+        } else {
+            $tagString = '{"name": "' . $tag . '"}';
+            $tags = $tag;
+        }
+
         // 更新日
         $now = date('Y/m/d H:i:s', time());
         // タイトル用
         $titleYesterday = date("Y年m月d日", strtotime("-1 day"));
         // 記事の内容(markdown形式)
-        $body = "**このページは毎日自動更新されます。前日に投稿された${tag}の記事をいいね数順に並べています。** <br>"
+        $body = "**このページは毎日自動更新されます。前日に投稿された${tags}の記事をいいね数順に並べています。** <br>"
                 . '※' . $now . '更新'
                 . '<br>'
                 . '<h1>' . $titleYesterday . '更新の記事</h1>';
@@ -175,8 +187,8 @@ class HerokuQiita
 
         $json = '{"title": "' . $title . '",
                   "body": "' . $body . '",
-                  "tags": [{"name": "' . $tag . '"}]
-        }';
+                  "tags": [' . $tagString . ']' .
+        '}';
         
         $result = QiitaApi\Curl::patch($requestUrl, $json);
     }
@@ -363,8 +375,12 @@ try {
     $uuid = '1dd6e8e3f58f89d17706';
     $title = 'React Native記事まとめ(毎日自動更新)';
     $item = $herokuQiita->getItems($tag);
-    $sortedItem = $herokuQiita->sortItems($item);
-    $herokuQiita->updateItem($sortedItem, $uuid, $tag, $title);
+    $tag2 = 'react-native';
+    $item2 = $herokuQiita->getItems($tag2);
+    $items = array_merge($item, $item2);
+    $sortedItem = $herokuQiita->sortItems($items);
+    $tagArray = [$tag, $tag2];
+    $herokuQiita->updateItem($sortedItem, $uuid, $tagArray, $title);
 
     //  ユーザーランキングの投稿
     $userNewItems = $herokuQiita->getUserNewItems(10);
