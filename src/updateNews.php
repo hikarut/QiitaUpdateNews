@@ -72,8 +72,16 @@ class HerokuQiita
         $i = 0;
         $j = 0;
         $yesterday = date("Ymd", strtotime("-1 day"));
+
+        // 重複している投稿を排除するよにタイトルをまとめる
+        $itemTitle = [];
         
         foreach ($result as $num => $data) {
+            // 重複している記事はスキップ
+            if (in_array($data['title'], $itemTitle)) {
+                continue;
+            }
+
             $updateAt = date('Ymd', strtotime($data['updated_at']));
             $createdAt = date('Ymd', strtotime($data['created_at']));
             // 前日のデータを取得
@@ -98,6 +106,7 @@ class HerokuQiita
                 $keyIdOld[$num] = $data['likes_count'];
                 $j++;
             }
+            $itemTitle[] = $data['title'];
         }
 
         // いいね数順に並び替える
